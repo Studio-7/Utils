@@ -9,6 +9,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"strings"
 
 	ct "github.com/cvhariharan/Data-Models/customtype"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
@@ -37,9 +38,30 @@ func GenerateJWT(username string) string {
 	u64 := b64.URLEncoding.EncodeToString([]byte(username))
 	s64 := b64.URLEncoding.EncodeToString([]byte(salt))
 	hash := computeHMAC(u64 + "." + s64)
-	return u64 + "." + s64 + "." + hash
+	return u64 + "." + s64 + "." + b64.URLEncoding.EncodeToString([]byte(hash))
 }
 
+// ValidateJWT takes in a jew string and returns the username if it is valid
+// else it returns an empty string
+func ValidateJWT(jwt string) string {
+	var username string
+	if jwt != "" {
+		parts := strings.Split(jwt, ".")
+		if len(parts) == 3 {
+			u, _ := b64.URLEncoding.DecodeString(parts[0])
+			// s, _ := b64.URLEncoding.DecodeString(parts[1])
+			h, _ := b64.URLEncoding.DecodeString(parts[2])
+			hash := computeHMAC(parts[0] + "." + parts[1])
+			if hash == string(h) {
+				return string(u)
+			}
+		}
+	}
+	return username
+}
+
+// CheckUserExists takes in a username and db session and check if the user
+// exists in the table
 func CheckUserExists(username string, session *r.Session) bool {
 	var u interface{}
 	db := os.Getenv("DB")
