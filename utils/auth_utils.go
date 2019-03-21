@@ -103,20 +103,23 @@ func UserSignup(user ct.User, session *r.Session) string {
 
 // UserLogin takes a user struct and checks if it exists in the table
 // if yes, then returns a jwt else returns empty string
-func UserLogin(user ct.User, session *r.Session) string {
+func UserLogin(username string, password string, session *r.Session) string {
 	var jwt string
 	var u map[string]interface{}
 	db := os.Getenv("DB")
 	userTable := os.Getenv("USERTABLE")
-	if CheckUserExists(user.UName, session) {
-		cur, _ := r.DB(db).Table(userTable).GetAllByIndex("username", user.UName).Run(session)
+	if CheckUserExists(username, session) {
+		cur, _ := r.DB(db).Table(userTable).GetAllByIndex("username", username).Run(session)
 		_ = cur.One(&u)
-
-		fmt.Println(u["password"])
-		fmt.Println(user.Passwd)
-		if user.Passwd == u["password"] {
+		salt := u["salt"].(string)
+		// fmt.Println(salt)
+		// user := ct.User{UName: username}
+		// hash := ct.HashPasswordWithSalt(password, salt)
+		// fmt.Println(hash)
+		// fmt.Println(u["password"])
+		if ct.CheckPasswordHash(password+salt, u["password"].(string)) {
 			// User authenticated
-			jwt = GenerateJWT(user.UName)
+			jwt = GenerateJWT(username)
 		}
 	}
 	return jwt
