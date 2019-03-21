@@ -5,15 +5,22 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	b64 "encoding/base64"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
+	"net/http"
 	"os"
 	"strings"
 
 	ct "github.com/cvhariharan/Data-Models/customtype"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
+
+type AuthToken struct {
+	Token string
+}
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
@@ -113,4 +120,24 @@ func UserLogin(user ct.User, session *r.Session) string {
 		}
 	}
 	return jwt
+}
+
+// AuthMiddleware takes in a JWT and http.handler and
+// returns the handler if JWT is valid
+func AuthMiddleware(handler http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var data map[string]interface{}
+		request, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+		json.Unmarshal([]byte(request), &data)
+		recvToken, recvOk := data["token"]
+		username, usernameOk := data["username"]
+		if usernameOk && recvOk && ValidateJWT(recvToken.(string)) == username.(string) {
+			handler.ServeHTTP(w, r)
+		} else {
+			fmt.Fprint(w, "Not Authorized")
+		}
+	})
 }
