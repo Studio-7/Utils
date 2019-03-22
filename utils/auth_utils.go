@@ -14,12 +14,13 @@ import (
 	"os"
 	"strings"
 
-	ct "github.com/cvhariharan/Data-Models/customtype"
+	ct "github.com/cvhariharan/Utils/customtype"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
 type AuthToken struct {
-	Token string
+	Username string `rethinkdb:"username"`
+	Token    string `rethinkdb:"token"`
 }
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -40,17 +41,29 @@ func computeHMAC(message string) string {
 }
 
 // GenerateJWT takes a username and generates a JWT with HMAC
-func GenerateJWT(username string) string {
+func GenerateJWT(username string, session *r.Session) string {
+	db := os.Getenv("DB")
+	tokenTable := os.Getenv("TOKENTABLE")
 	salt := randStringBytes(32)
 	u64 := b64.URLEncoding.EncodeToString([]byte(username))
 	s64 := b64.URLEncoding.EncodeToString([]byte(salt))
 	hash := computeHMAC(u64 + "." + s64)
-	return u64 + "." + s64 + "." + b64.URLEncoding.EncodeToString([]byte(hash))
+	jwt := u64 + "." + s64 + "." + b64.URLEncoding.EncodeToString([]byte(hash))
+	// Write to token table
+	if !CheckUserExists(username, tokenTable, session) {
+		auth := AuthToken{username, jwt}
+		fmt.Println(auth)
+		r.DB(db).Table(tokenTable).Insert(auth).Run(session)
+	}
+
+	return jwt
 }
 
 // ValidateJWT takes in a jew string and returns the username if it is valid
 // else it returns an empty string
-func ValidateJWT(jwt string) string {
+func ValidateJWT(jwt string, session *r.Session) string {
+	tokenTable := os.Getenv("TOKENTABLE")
+	db := os.Getenv("DB")
 	var username string
 	if jwt != "" {
 		parts := strings.Split(jwt, ".")
@@ -60,20 +73,24 @@ func ValidateJWT(jwt string) string {
 			h, _ := b64.URLEncoding.DecodeString(parts[2])
 			hash := computeHMAC(parts[0] + "." + parts[1])
 			if hash == string(h) {
-				return string(u)
+				if CheckUserExists(string(u), tokenTable, session) {
+					username = string(u)
+					// Delete the currently used token from tokentable
+					r.DB(db).Table(tokenTable).GetAllByIndex("username", username).Delete().Run(session)
+				}
 			}
 		}
 	}
 	return username
 }
 
-// CheckUserExists takes in a username and db session and check if the user
-// exists in the table
-func CheckUserExists(username string, session *r.Session) bool {
+// CheckUserExists takes in a username, table and db session and check if the user
+// exists in the given table
+func CheckUserExists(username string, table string, session *r.Session) bool {
 	var u interface{}
 	db := os.Getenv("DB")
-	userTable := os.Getenv("USERTABLE")
-	cur, _ := r.DB(db).Table(userTable).GetAllByIndex("username", username).Run(session)
+	// userTable := os.Getenv("USERTABLE")
+	cur, _ := r.DB(db).Table(table).GetAllByIndex("username", username).Run(session)
 	_ = cur.One(&u)
 	// fmt.Println(u)
 	if u == nil {
@@ -89,13 +106,13 @@ func UserSignup(user ct.User, session *r.Session) string {
 	db := os.Getenv("DB")
 	userTable := os.Getenv("USERTABLE")
 	// Check if username exists
-	if !CheckUserExists(user.UName, session) {
+	if !CheckUserExists(user.UName, userTable, session) {
 		// fmt.Println("No")
 		_, err := r.DB(db).Table(userTable).Insert(user).Run(session)
 		if err != nil {
 			log.Fatal(err)
 		}
-		jwt = GenerateJWT(user.UName)
+		jwt = GenerateJWT(user.UName, session)
 	}
 
 	return jwt
@@ -108,7 +125,7 @@ func UserLogin(username string, password string, session *r.Session) string {
 	var u map[string]interface{}
 	db := os.Getenv("DB")
 	userTable := os.Getenv("USERTABLE")
-	if CheckUserExists(username, session) {
+	if CheckUserExists(username, userTable, session) {
 		cur, _ := r.DB(db).Table(userTable).GetAllByIndex("username", username).Run(session)
 		_ = cur.One(&u)
 		salt := u["salt"].(string)
@@ -119,7 +136,7 @@ func UserLogin(username string, password string, session *r.Session) string {
 		// fmt.Println(u["password"])
 		if ct.CheckPasswordHash(password+salt, u["password"].(string)) {
 			// User authenticated
-			jwt = GenerateJWT(username)
+			jwt = GenerateJWT(username, session)
 		}
 	}
 	return jwt
@@ -127,7 +144,7 @@ func UserLogin(username string, password string, session *r.Session) string {
 
 // AuthMiddleware takes in a JWT and http.handler and
 // returns the handler if JWT is valid
-func AuthMiddleware(handler http.HandlerFunc) http.HandlerFunc {
+func AuthMiddleware(handler http.HandlerFunc, session *r.Session) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var data map[string]interface{}
 		request, err := ioutil.ReadAll(r.Body)
@@ -137,7 +154,7 @@ func AuthMiddleware(handler http.HandlerFunc) http.HandlerFunc {
 		json.Unmarshal([]byte(request), &data)
 		recvToken, recvOk := data["token"]
 		username, usernameOk := data["username"]
-		if usernameOk && recvOk && ValidateJWT(recvToken.(string)) == username.(string) {
+		if usernameOk && recvOk && ValidateJWT(recvToken.(string), session) == username.(string) {
 			handler.ServeHTTP(w, r)
 		} else {
 			fmt.Fprint(w, "Not Authorized")
