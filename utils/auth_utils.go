@@ -84,6 +84,19 @@ func ValidateJWT(jwt string, session *r.Session) string {
 	return username
 }
 
+// func GetUser(username string, session *r.Session) ct.User {
+// 	var u ct.User
+// 	// var user ct.User
+// 	db := os.Getenv("DB")
+// 	table := os.Getenv("USERTABLE")
+// 	// userTable := os.Getenv("USERTABLE")
+// 	cur, _ := r.DB(db).Table(table).GetAllByIndex("username", username).Run(session)
+// 	_ = cur.One(&u)
+// 	// fmt.Println(u)
+// 	// mapstructure.Decode(u, &user)
+// 	return u
+// }
+
 // CheckUserExists takes in a username, table and db session and check if the user
 // exists in the given table
 func CheckUserExists(username string, table string, session *r.Session) bool {
@@ -105,8 +118,9 @@ func UserSignup(user ct.User, session *r.Session) string {
 	var jwt string
 	db := os.Getenv("DB")
 	userTable := os.Getenv("USERTABLE")
-	// Check if username exists
-	if !CheckUserExists(user.UName, userTable, session) {
+	// Check if username or email exists
+	// fmt.Println(user.UName)
+	if !CheckUserExists(user.UName, userTable, session) && user.UName != "" && !CheckEmailExists(user.Email, session) {
 		// fmt.Println("No")
 		_, err := r.DB(db).Table(userTable).Insert(user).Run(session)
 		if err != nil {
