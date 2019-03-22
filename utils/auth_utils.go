@@ -127,6 +127,7 @@ func UserSignup(user ct.User, session *r.Session) string {
 			log.Fatal(err)
 		}
 		jwt = GenerateJWT(user.UName, session)
+		// SendMail(user.Email, user.UName, "OTP", randStringBytes(6))
 	}
 
 	return jwt
