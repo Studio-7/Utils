@@ -27,6 +27,7 @@ type User struct {
 	Salt       string `rethinkdb:"salt"`
 	Passwd     string `rethinkdb:"password"`
 	Email      string `rethinkdb:"email"`
+	Verified   bool   `rethinkdb:"verified"`
 	ProfilePic Image  `rethinkdb:"profile_pic"`
 }
 
