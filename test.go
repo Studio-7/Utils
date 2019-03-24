@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/cvhariharan/Data-Models/customtype"
+	"github.com/cvhariharan/Utils/customtype"
 	"github.com/cvhariharan/Utils/utils"
 	"github.com/joho/godotenv"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
@@ -24,10 +24,14 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	user := customtype.User{FName: "a", LName: "b"}
+	user := customtype.User{FName: "yako", LName: "makaza"}
 	user.CreatePassword("testpass")
-	user.UpdateDetails("testuser2", customtype.UName)
+	user.UpdateDetails("3r4", customtype.UName)
+	user.UpdateDetails("zeptonews@gmail.com", customtype.Email)
 	fmt.Println(utils.UserSignup(user, session))
-	fmt.Println("Login")
-	fmt.Println(utils.UserLogin(user, session))
+	// user := utils.GetUser("johnwick1", session)
+	// fmt.Println(user)
+	// fmt.Println(utils.ValidateJWT("eWFrb21ha2F6YTE=.dXFWVU9FYVl2a0hQd2FHYVVjV0lzU1pYQXdWd3FUTGU=.TSt6NjlDVUpRb0tHYUJ5TDg0TTh0YkpJcVZCMTNaQ3NwMWR0K3hzVmYvST0=", session))
+	// fmt.Println("Login")
+	// fmt.Println(utils.UserLogin(user, session))
 }
