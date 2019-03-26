@@ -45,7 +45,7 @@ type Relation struct {
 // Body represents the message body in posts and comments
 type Body struct {
 	Message string `rethinkdb:"message"`
-	Image   string `rethinkdb:"image"`
+	Img     Image  `rethinkdb:"image"`
 }
 
 // Post can be made up of text, images or links.
@@ -54,8 +54,9 @@ type Post struct {
 	Title     string    `rethinkdb:"title"`
 	CreatedOn time.Time `rethinkdb:"created_on"`
 	CreatedBy string    `rethinkdb:"created_by"`
-	Body
-	Hashtags []string `rethinkdb:"hashtags"`
+	PostBody  Body      `rethinkdb:"body"`
+	Hashtags  []string  `rethinkdb:"hashtags"`
+	Likes     int       `rethinkdb:"-"`
 }
 
 // Comment struct represents the relationship between the user, comment
@@ -65,6 +66,7 @@ type Comment struct {
 	CreatedOn time.Time `rethinkdb:"created_on"`
 	CreatedBy string    `rethinkdb:"created_by"`
 	Parent    string    `rethinkdb:"parent"`
+	Likes     int       `rethinkdb:"-"`
 }
 
 // TravelCapsule struct represents a collection of posts that can also be
@@ -74,6 +76,7 @@ type TravelCapsule struct {
 	CreatedOn time.Time `rethinkdb:"created_on"`
 	CreatedBy string    `rethinkdb:"created_by"`
 	Hashtags  []string  `rethinkdb:"hashtags"`
+	Likes     int       `rethinkdb:"-"`
 }
 
 // Hashtag struct represents the relation between hastags and posts
@@ -85,7 +88,7 @@ type Hashtag struct {
 // Image represents the images found in posts, comments and profile pics
 type Image struct {
 	Link         string    `rethinkdb:"url"`
-	CreatedOn    time.Time `rethinkdb:"created_on"`
+	CreatedOn    string    `rethinkdb:"created_on"`
 	UploadedOn   time.Time `rethinkdb:"uploaded_on"`
 	Manufacturer string    `rethinkdb:"manufacturer"`
 	Model        string    `rethinkdb:"model"`
