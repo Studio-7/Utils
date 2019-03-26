@@ -60,8 +60,10 @@ func uploadToIPFS(imgloc string) string {
 	return ipfsresp.Hash
 }
 
-func getImage(imgloc string) ct.Image {
+func getImage(imgloc string, session *r.Session) ct.Image {
 	var img ct.Image
+	db := os.Getenv("DB")
+	imgTable := os.Getenv("IMGTABLE")
 	cid := uploadToIPFS(imgloc)
 	fmt.Println(cid)
 	img = ct.Image{
@@ -76,6 +78,8 @@ func getImage(imgloc string) ct.Image {
 			img.Model = data.Tags["Model"]
 		}
 	}
+	// Add to DB
+	r.DB(db).Table(imgTable).Insert(img).Run(session)
 	return img
 }
 
@@ -86,7 +90,7 @@ func CreatePost(title string, message string, imgloc string, hashtags []string, 
 	postTable := os.Getenv("POSTTABLE")
 	var img ct.Image
 	if imgloc != "" {
-		img = getImage(imgloc)
+		img = getImage(imgloc, session)
 		body := ct.Body{
 			Message: message,
 			Img:     img,
