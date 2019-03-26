@@ -193,16 +193,18 @@ func AuthMiddleware(handler http.HandlerFunc, session *r.Session) http.HandlerFu
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var token string
 		var username string
-		if r.Header.Get("Content-Type") == "multipart/form-data" {
+		fmt.Println(r.Header.Get("Content-Type"))
+		if r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
 			// fmt.Println("Multipart")
 			r.ParseForm()
 			token = r.Form.Get("token")
 			username = r.Form.Get("username")
-		} else if r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
-			// fmt.Println("form encoded")
-			r.ParseMultipartForm(4096)
+		} else if strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data") {
+			fmt.Println("Multipart")
+			r.ParseMultipartForm(10 << 20)
 			token = r.FormValue("token")
 			username = r.FormValue("username")
+			fmt.Println(token + ":" + username)
 		}
 		if token != "" && username != "" && ValidateJWT(token, session) == username {
 			// fmt.Println("Authorized")
