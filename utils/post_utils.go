@@ -85,26 +85,41 @@ func getImage(imgloc string, session *r.Session) ct.Image {
 
 // CreatePost take params, creates a post object and inserts it into the post table
 // created to prevent direct handling of data-model structs in the handlers
-func CreatePost(title string, message string, imgloc string, hashtags []string, username string, session *r.Session) bool {
+func CreatePost(title, message, imgloc string, hashtags []string, username string, session *r.Session) bool {
 	db := os.Getenv("DB")
 	postTable := os.Getenv("POSTTABLE")
+	// tcTable := os.Getenv("TCTABLE")
 	var img ct.Image
+	var body ct.Body
+
 	if imgloc != "" {
 		img = getImage(imgloc, session)
-		body := ct.Body{
+		body = ct.Body{
 			Message: message,
 			Img:     img,
 		}
-		post := ct.Post{
-			Title:     title,
-			CreatedOn: time.Now(),
-			CreatedBy: username,
-			PostBody:  body,
-			Hashtags:  hashtags,
+
+		// // Attach post to travelcapsule if travelcapsule is not nil
+		// // else create a new travelcapsule
+		// if travelcapsule != nil {
+
+		// } else {
+
+		// }
+	} else {
+		body = ct.Body{
+			Message: message,
 		}
-		// Insert post into table
-		r.DB(db).Table(postTable).Insert(post).Run(session)
-		return true
 	}
-	return false
+	
+	post := ct.Post{
+		Title:     title,
+		CreatedOn: time.Now(),
+		CreatedBy: username,
+		PostBody:  body,
+		Hashtags:  hashtags,
+	}
+	// Insert post into table
+	r.DB(db).Table(postTable).Insert(post).Run(session)
+	return true
 }
