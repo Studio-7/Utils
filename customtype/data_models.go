@@ -51,6 +51,7 @@ type Body struct {
 // Post can be made up of text, images or links.
 // This is a parent type of TravelCapsule
 type Post struct {
+	Id string `rethinkdb:"id,omitempty"`
 	Title     string    `rethinkdb:"title"`
 	CreatedOn time.Time `rethinkdb:"created_on"`
 	CreatedBy string    `rethinkdb:"created_by"`
