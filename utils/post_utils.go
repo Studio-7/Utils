@@ -83,12 +83,44 @@ func getImage(imgloc string, session *r.Session) ct.Image {
 	return img
 }
 
-// CreatePost take params, creates a post object and inserts it into the post table
-// created to prevent direct handling of data-model structs in the handlers
-func CreatePost(title, message, imgloc string, hashtags []string, username string, session *r.Session) bool {
+// CheckPostExists takes in a post id and returns true
+// if it exists
+func CheckPostExists(postId string, session *r.Session) bool {
+	var post interface{}
 	db := os.Getenv("DB")
 	postTable := os.Getenv("POSTTABLE")
-	// tcTable := os.Getenv("TCTABLE")
+	cur, _ := r.DB(db).Table(postTable).Get(postId).Run(session)
+	cur.One(&post)
+	fmt.Println(post)
+	if post != nil {
+		return true
+	}
+	return false
+}
+
+// CheckTravelCapsuleExists takes in a travelcapsule id and returns the username
+// of the creator if the travelcapsule exists.
+func CheckTravelCapsuleExists(travelcapsule string, session *r.Session) string {
+	if travelcapsule == "" {
+		return ""
+	}
+	var t ct.TravelCapsule
+	db := os.Getenv("DB")
+	tcTable := os.Getenv("TCTABLE")
+	cur, _ := r.DB(db).Table(tcTable).Get(travelcapsule).Run(session)
+	_ = cur.One(&t)
+	cur.Close()
+	return t.CreatedBy
+}
+
+// CreatePost take params, creates a post object and inserts it into the post table
+// created to prevent direct handling of data-model structs in the handlers
+func CreatePost(travelcapsule, title, message, imgloc string, hashtags []string, username string, session *r.Session) string {
+	capsule := travelcapsule
+	db := os.Getenv("DB")
+	postTable := os.Getenv("POSTTABLE")
+	tcTable := os.Getenv("TCTABLE")
+
 	var img ct.Image
 	var body ct.Body
 
@@ -98,14 +130,6 @@ func CreatePost(title, message, imgloc string, hashtags []string, username strin
 			Message: message,
 			Img:     img,
 		}
-
-		// // Attach post to travelcapsule if travelcapsule is not nil
-		// // else create a new travelcapsule
-		// if travelcapsule != nil {
-
-		// } else {
-
-		// }
 	} else {
 		body = ct.Body{
 			Message: message,
@@ -118,8 +142,39 @@ func CreatePost(title, message, imgloc string, hashtags []string, username strin
 		CreatedBy: username,
 		PostBody:  body,
 		Hashtags:  hashtags,
+		Likes: 0,
 	}
-	// Insert post into table
-	r.DB(db).Table(postTable).Insert(post).Run(session)
-	return true
+	// Attach post to travelcapsule if travelcapsule is not empty
+	// else create a new travelcapsule
+	if travelcapsule == "" {
+		// var t ct.TravelCapsule
+		tc := ct.TravelCapsule{
+			CreatedOn: time.Now(),
+			CreatedBy: username,
+			// Hashtags: hashtags,
+		}
+		// Insert post into table
+		p, _ := r.DB(db).Table(postTable).Insert(post).RunWrite(session)
+		post.Id = p.GeneratedKeys[0]
+		
+		tc.Posts = append(tc.Posts, post)
+		insertedTerm, err := r.DB(db).Table(tcTable).Insert(tc).RunWrite(session)
+		if err != nil {
+			fmt.Println(err)
+		}
+		capsule = insertedTerm.GeneratedKeys[0]
+		
+	} else {
+		creator := CheckTravelCapsuleExists(travelcapsule, session)
+		fmt.Println("Creator: " + creator + " User: " + username)
+		if creator == username {
+			r.DB(db).Table(tcTable).Get(travelcapsule).
+			Update(map[string]interface{}{"posts": r.Row.Field("posts").
+			Append(post)}).
+			RunWrite(session)
+		}
+	}
+	
+	
+	return capsule
 }

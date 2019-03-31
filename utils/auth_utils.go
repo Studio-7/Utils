@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
 
 	ct "github.com/cvhariharan/Utils/customtype"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
@@ -60,7 +59,7 @@ func GenerateJWT(username string, session *r.Session) string {
 	// Write to token table
 	if !CheckUserExists(username, tokenTable, session) {
 		auth := AuthToken{username, h}
-		fmt.Println(auth)
+		// fmt.Println(auth)
 		r.DB(db).Table(tokenTable).Insert(auth).Run(session)
 		jwt = h
 	}
@@ -119,27 +118,13 @@ func CheckUserExists(username string, table string, session *r.Session) bool {
 	cur.Close()
 	// fmt.Println(u)
 	if u == nil {
-		fmt.Println("NO")
+		// fmt.Println("NO")
 		return false
 	}
-	fmt.Println("YES")
+	// fmt.Println("YES")
 	return true
 }
 
-// CheckRelationExists takes a src and dest and checks if they are connected
-// by the relation table
-func CheckRelationExists(src string, dest string, session *r.Session) bool {
-	var u ct.Relation
-	db := os.Getenv("DB")
-	table := os.Getenv("RELNTABLE")
-	cur, _ := r.DB(db).Table(table).GetAllByIndex("src", src).Run(session)
-	_ = cur.One(&u)
-	cur.Close()
-	if u.Dest == dest {
-		return true
-	}
-	return false
-}
 
 // UserSignup takes a new user struct, inserts it into table and returns a JWT
 // If username exists, returns empty string
@@ -200,7 +185,7 @@ func AuthMiddleware(handler http.HandlerFunc, session *r.Session) http.HandlerFu
 			token = r.Form.Get("token")
 			username = r.Form.Get("username")
 		} else if strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data") {
-			fmt.Println("Multipart")
+			// fmt.Println("Multipart")
 			r.ParseMultipartForm(10 << 20)
 			token = r.FormValue("token")
 			username = r.FormValue("username")
@@ -215,24 +200,3 @@ func AuthMiddleware(handler http.HandlerFunc, session *r.Session) http.HandlerFu
 	})
 }
 
-// FollowUser takes follower and followee usernames, checks if they are already related and
-// if not, creates a reln between them
-func FollowUser(follower string, followee string, session *r.Session) bool {
-	userTable := os.Getenv("USERTABLE")
-	relationTable := os.Getenv("RELNTABLE")
-	db := os.Getenv("DB")
-	if CheckUserExists(follower, userTable, session) && CheckUserExists(followee, userTable, session) && follower != followee {
-		// Check if user already follows the followee
-		if !CheckRelationExists(follower, followee, session) {
-			rel := ct.Relation{
-				Src:       follower,
-				Dest:      followee,
-				CreatedOn: time.Now(),
-				Type:      ct.FollowerType,
-			}
-			r.DB(db).Table(relationTable).Insert(rel).Run(session)
-			return true
-		}
-	}
-	return false
-}
