@@ -57,7 +57,7 @@ type Post struct {
 	CreatedBy string    `rethinkdb:"created_by"`
 	PostBody  Body      `rethinkdb:"body"`
 	Hashtags  []string  `rethinkdb:"hashtags"`
-	Likes     int       `rethinkdb:"-"`
+	Likes     int       `rethinkdb:"likes"`
 }
 
 // Comment struct represents the relationship between the user, comment
@@ -67,7 +67,7 @@ type Comment struct {
 	CreatedOn time.Time `rethinkdb:"created_on"`
 	CreatedBy string    `rethinkdb:"created_by"`
 	Parent    string    `rethinkdb:"parent"`
-	Likes     int       `rethinkdb:"-"`
+	Likes     int       `rethinkdb:"likes"`
 }
 
 // TravelCapsule struct represents a collection of posts that can also be
@@ -77,7 +77,7 @@ type TravelCapsule struct {
 	CreatedOn time.Time `rethinkdb:"created_on"`
 	CreatedBy string    `rethinkdb:"created_by"`
 	Hashtags  []string  `rethinkdb:"hashtags"`
-	Likes     int       `rethinkdb:"-"`
+	Likes     int       `rethinkdb:"likes"`
 }
 
 // Hashtag struct represents the relation between hastags and posts
