@@ -25,6 +25,21 @@ func CheckRelationExists(src string, dest string, rType int, session *r.Session)
 	return false
 }
 
+func getRelation(src string, dest string, rType int, session *r.Session) ct.Relation {
+	var u ct.Relation
+	var t ct.Relation
+	db := os.Getenv("DB")
+	table := os.Getenv("RELNTABLE")
+	cur, _ := r.DB(db).Table(table).GetAllByIndex("src", src).Filter(r.Row.Field("dest").Eq(dest)).Run(session)
+
+	for cur.Next(&u) {
+		if u.Type == rType {
+			return u
+		}
+	}
+	return t
+}
+
 // FollowUser takes follower and followee usernames, checks if they are already related and
 // if not, creates a reln between them
 func FollowUser(follower string, followee string, session *r.Session) bool {
@@ -67,6 +82,29 @@ func LikePost(postId string, username string, session *r.Session) bool {
 			"likes": r.Row.Field("likes").Add(1),
 		}).Run(session)
 		return true
+	}
+	return false
+}
+
+// UnlikePost takes in post id and username and unlikes the post
+// if the user had liked it
+func UnlikePost(postId string, username string, session *r.Session) bool {
+	var t ct.Relation
+	db := os.Getenv("DB")
+	relationTable := os.Getenv("RELNTABLE")
+	postTable := os.Getenv("POSTTABLE")
+	if CheckRelationExists(username, postId, ct.LikeType, session) {
+		u := getRelation(username, postId, ct.LikeType, session)
+		// Only if u is not an empty struct
+		if u != t {
+			r.DB(db).Table(relationTable).Get(u.Id).Delete().Run(session)
+
+			// Update the likes count
+			r.DB(db).Table(postTable).Get(postId).Update(map[string]interface{}{
+				"likes": r.Row.Field("likes").Sub(1),
+			}).Run(session)
+			return true
+		}
 	}
 	return false
 }

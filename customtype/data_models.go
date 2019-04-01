@@ -35,6 +35,7 @@ type User struct {
 // Many-one has to be imposed
 // Type can be LikeType or FollowerType
 type Relation struct {
+	Id string `rethinkdb:"id,omitempty"`
 	Src       string    `rethinkdb:"src"`
 	Dest      string    `rethinkdb:"dest"`
 	CreatedOn time.Time `rethinkdb:"created_on"`
