@@ -70,6 +70,7 @@ func GenerateJWT(username string, session *r.Session) string {
 // ValidateJWT takes in a jew string and returns the username if it is valid
 // else it returns an empty string
 func ValidateJWT(jwt string, session *r.Session) string {
+	var auth interface{}
 	tokenTable := os.Getenv("TOKENTABLE")
 	db := os.Getenv("DB")
 	var username string
@@ -83,13 +84,20 @@ func ValidateJWT(jwt string, session *r.Session) string {
 			if hash == string(h) {
 				if CheckUserExists(string(u), tokenTable, session) {
 					username = string(u)
-					// Delete the currently used token from tokentable
-					r.DB(db).Table(tokenTable).GetAllByIndex("username", username).Delete().Run(session)
+					cur, _ := r.DB(db).Table(tokenTable).GetAllByIndex("token", jwt).Run(session)
+					cur.One(&auth)
+					if auth != nil {
+						// Token exists in table, ie valid token
+						// Delete the currently used token from tokentable
+						r.DB(db).Table(tokenTable).GetAllByIndex("username", username).Delete().Run(session)
+						return username
+					}
+					
 				}
 			}
 		}
 	}
-	return username
+	return ""
 }
 
 // GetUser returns the user object by taking the username as input
