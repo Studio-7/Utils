@@ -74,8 +74,9 @@ type Comment struct {
 // TravelCapsule struct represents a collection of posts that can also be
 // a standalone post
 type TravelCapsule struct {
+	Id		  string	`rethinkdb:"id,omitempty"`
 	Title 	  string    `rethinkdb:"title"`
-	Posts     []Post    `rethinkdb:"posts"`
+	Posts     []string  `rethinkdb:"posts"`
 	CreatedOn time.Time `rethinkdb:"created_on"`
 	CreatedBy string    `rethinkdb:"created_by"`
 	Hashtags  []string  `rethinkdb:"hashtags"`
