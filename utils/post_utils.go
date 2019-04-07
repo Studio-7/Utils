@@ -123,14 +123,13 @@ func addImageToPost(imgloc, travelcapsule string, post ct.Post, session *r.Sessi
 	if imgloc != "" {
 		img := getImage(imgloc, session)
 		post.PostBody.Img = img
-
-		r.DB(db).Table(tcTable).Get(travelcapsule).
+	}
+	r.DB(db).Table(tcTable).Get(travelcapsule).
 			Update(map[string]interface{}{"posts": r.Row.Field("posts").
 			Append(post)}).
 			RunWrite(session)
-		// Insert into post table
-		r.DB(db).Table(postTable).Insert(post).Run(session)
-	}
+	// Insert into post table
+	r.DB(db).Table(postTable).Insert(post).Run(session)
 }
 
 // CreatePost takes in a travelcapsule id and adds the post to it. 
@@ -180,3 +179,12 @@ func CreateTC(title, username string, session *r.Session) string {
 	capsule = insertedTerm.GeneratedKeys[0]
 	return capsule
 }
+
+// // GetTC takes in a postId and returns a slice of 
+// // all the TCs containing that post
+// func GetTC(postId string, session *r.Session) string {
+// 	var tcs []string
+// 	db := os.Getenv("DB")
+// 	tcTable := os.Getenv("TCTABLE")
+// 	cur, _ = r.DB(db).Table(tcTable).Filter(r.Row.Field("posts"))
+// }
