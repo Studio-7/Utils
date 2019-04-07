@@ -124,12 +124,21 @@ func addImageToPost(imgloc, travelcapsule string, post ct.Post, session *r.Sessi
 		img := getImage(imgloc, session)
 		post.PostBody.Img = img
 	}
+
+	// Insert into post table
+	insertedPost, err := r.DB(db).Table(postTable).Insert(post).RunWrite(session)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	// Store the id in the post to be inserted in TC
+	id := insertedPost.GeneratedKeys[0]
+
 	r.DB(db).Table(tcTable).Get(travelcapsule).
 			Update(map[string]interface{}{"posts": r.Row.Field("posts").
-			Append(post)}).
+			Append(id)}).
 			RunWrite(session)
-	// Insert into post table
-	r.DB(db).Table(postTable).Insert(post).Run(session)
+	
 }
 
 // CreatePost takes in a travelcapsule id and adds the post to it. 
@@ -180,11 +189,17 @@ func CreateTC(title, username string, session *r.Session) string {
 	return capsule
 }
 
-// // GetTC takes in a postId and returns a slice of 
-// // all the TCs containing that post
-// func GetTC(postId string, session *r.Session) string {
-// 	var tcs []string
-// 	db := os.Getenv("DB")
-// 	tcTable := os.Getenv("TCTABLE")
-// 	cur, _ = r.DB(db).Table(tcTable).Filter(r.Row.Field("posts"))
-// }
+// GetTC takes in a postId and returns a slice of 
+// all the TCs containing that post
+func GetTC(postId string, session *r.Session) []string {
+	var tcs []string
+	var tc ct.TravelCapsule
+	db := os.Getenv("DB")
+	tcTable := os.Getenv("TCTABLE")
+	cur, _ := r.DB(db).Table(tcTable).GetAllByIndex("posts", postId).Run(session)
+
+	for cur.Next(&tc) {
+		tcs = append(tcs, tc.Id)
+	}
+	return tcs
+}
