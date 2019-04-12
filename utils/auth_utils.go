@@ -194,7 +194,7 @@ func AuthMiddleware(handler http.HandlerFunc, session *r.Session) http.HandlerFu
 			username = r.Form.Get("username")
 		} else if strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data") {
 			// fmt.Println("Multipart")
-			r.ParseMultipartForm(10 << 20)
+			r.ParseMultipartForm(32 << 20)
 			token = r.FormValue("token")
 			username = r.FormValue("username")
 			fmt.Println(token + ":" + username)
