@@ -3,9 +3,13 @@ package customtype
 import (
 	"log"
 	"math/rand"
+	"os"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
+
+	au "github.com/cvhariharan/Utils/utils"
+	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
 // Enum for choosing what details to be updated
@@ -60,23 +64,42 @@ func CheckPasswordHash(password, hash string) bool {
 	return err == nil
 }
 
-// UpdateDetails operates on user struct to update the user info
-// To update the salt, the current password has to be passed
-func (user *User) UpdateDetails(newData string, field int) {
-	if newData != "" {
-		switch field {
-		case FName:
-			user.FName = newData
-		case LName:
-			user.LName = newData
-		case UName:
-			user.UName = newData
-		case Passwd:
-			user.CreatePassword(newData)
-		case Salt:
-			user.CreatePassword(newData)
-		case Email:
-			user.Email = newData
-		}
+// UpdateDetails takes a user struct and checks it's userid to get the value from the table.
+// Empty values are ignored and new values are updated into the object which is then stored into the database.
+func (user *User) UpdateDetails(username string, session *r.Session) string {
+
+	conf := ""
+	db := os.Getenv("DB")
+	var u User
+	userTable := os.Getenv("USERTABLE")
+	var conf string
+	if au.CheckUserExists(username, userTable, session) {
+		cur, _ := r.DB(db).Table(userTable).GetAllByIndex("username", username).Run(session)
+		_ = cur.One(&u)
+		cur.Close()
 	}
+
+	if user.UName == "" {
+		user.UName = u.UName
+	}
+	if user.Passwd == "" {
+		user.Passwd = u.Passwd
+	}
+	if user.Email == "" {
+		user.Email = u.Email
+	}
+	if user.FName == "" {
+		user.FName = u.FName
+	}
+	if user.LName == "" {
+		user.LName = u.LName
+	}
+
+	cur, _ := r.DB(db).Table(userTable).Get(username).Update(user).RunWrite(session)
+	if _ != nil {
+		log.Fatal(_)
+		conf = _.error()
+	}
+	return conf
+
 }
