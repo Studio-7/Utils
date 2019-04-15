@@ -206,3 +206,13 @@ func AuthMiddleware(handler http.HandlerFunc, session *r.Session) http.HandlerFu
 		}
 	})
 }
+
+// UpdateUserDetails taken in the username, and a new user object containing all new user data
+// it passes the data to UpdateDetails in user_utils, and then passes the confirmation of the
+// updation to the handler
+func UpdateUserDetails(username string, user ct.user, session *r.session) {
+
+	conf := user.UpdateDetails(username, *r.session)
+	return conf
+
+}

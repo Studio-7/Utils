@@ -8,7 +8,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	au "github.com/devd-99/Utils/utils"
+	au "github.com/cvhariharan/Utils/utils"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
 
@@ -66,7 +66,7 @@ func CheckPasswordHash(password, hash string) bool {
 
 // UpdateDetails takes a user struct and checks it's userid to get the value from the table.
 // Empty values are ignored and new values are updated into the object which is then stored into the database.
-func (user *User) UpdateDetails(username string, password string, session *r.Session) string {
+func (user *User) UpdateDetails(username string, session *r.Session) string {
 
 	conf := ""
 	db := os.Getenv("DB")
