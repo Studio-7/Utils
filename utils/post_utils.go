@@ -203,3 +203,26 @@ func GetTC(postId string, session *r.Session) []string {
 	}
 	return tcs
 }
+
+
+// GetSimplifiedPost returns a simpler version of a post
+func GetPost(postId string, simplified bool, session *r.Session) interface{} {
+	var simplePost ct.SimplePost
+	var post ct.Post
+	db := os.Getenv("DB")
+	postTable := os.Getenv("POSTTABLE")
+	cur, _ := r.DB(db).Table(postTable).Get(postId).Run(session)
+	cur.One(&post)
+	simplePost = ct.SimplePost{
+		Id: post.Id,
+		Title: post.Title,
+		CreatedOn: post.CreatedOn,
+		Message: post.PostBody.Message,
+		Image: "https://cloudflare-ipfs.com/ipfs/" + post.PostBody.Img.Link,
+	}
+	fmt.Println(simplePost)
+	if simplified {
+		return simplePost
+	}
+	return post
+}
