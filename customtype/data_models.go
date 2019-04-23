@@ -61,10 +61,20 @@ type Post struct {
 	Likes     int       `rethinkdb:"likes"`
 }
 
+// SimplePost represents the barebones data required to render it
+// on the app
+type SimplePost struct {
+	Id 		  string 	`rethinkdb:"id,omitempty"`
+	Title     string	`rethinkdb:"title"`
+	Message   string 	
+	Image	  string
+	CreatedOn time.Time `rethinkdb:"created_on"`
+}
+
 // Comment struct represents the relationship between the user, comment
 // and the post
 type Comment struct {
-	Body
+	CommentBody  Body   `rethinkdb:"body"`
 	CreatedOn time.Time `rethinkdb:"created_on"`
 	CreatedBy string    `rethinkdb:"created_by"`
 	Parent    string    `rethinkdb:"parent"`
