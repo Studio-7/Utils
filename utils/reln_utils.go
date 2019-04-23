@@ -7,6 +7,50 @@ import (
 	"os"
 )
 
+
+// AddComment takes in a postid and username and inserts a comment into that
+// post from the user. Returns true if successful, else false
+func AddComment(postId, username, message string, session *r.Session) bool {
+	db := os.Getenv("DB")
+	commentTable := os.Getenv("COMMENTTABLE")
+
+	if CheckPostExists(postId, session) {
+		commentBody := ct.Body{
+			Message: message,
+		}
+		comment := ct.Comment{
+			CommentBody: commentBody,
+			CreatedOn: time.Now(),
+			CreatedBy: username,
+			Parent: postId,
+			Likes: 0,
+		}
+
+		r.DB(db).Table(commentTable).Insert(comment).Run(session)
+		return true
+	}
+
+	return false
+	
+}
+
+// GetComments takes in a postid and returns all its comments as
+// a comments Array
+func GetComments(postId string, session *r.Session) []ct.Comment {
+	var comments []ct.Comment
+	var comment ct.Comment
+	db := os.Getenv("DB")
+	commentTable := os.Getenv("COMMENTTABLE")
+
+	cur, _ := r.DB(db).Table(commentTable).GetAllByIndex("parent", postId).Run(session)
+
+	for cur.Next(&comment) {
+		comments = append(comments, comment)
+	}
+	return comments
+}
+
+
 // CheckRelationExists takes a src and dest and checks if they are connected
 // by the relation table
 func CheckRelationExists(src string, dest string, rType int, session *r.Session) bool {

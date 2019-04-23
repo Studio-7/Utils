@@ -74,7 +74,7 @@ type SimplePost struct {
 // Comment struct represents the relationship between the user, comment
 // and the post
 type Comment struct {
-	Body
+	CommentBody  Body   `rethinkdb:"body"`
 	CreatedOn time.Time `rethinkdb:"created_on"`
 	CreatedBy string    `rethinkdb:"created_by"`
 	Parent    string    `rethinkdb:"parent"`
