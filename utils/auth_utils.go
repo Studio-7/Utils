@@ -92,7 +92,7 @@ func ValidateJWT(jwt string, session *r.Session) string {
 						r.DB(db).Table(tokenTable).GetAllByIndex("username", username).Delete().Run(session)
 						return username
 					}
-
+					
 				}
 			}
 		}
@@ -132,6 +132,7 @@ func CheckUserExists(username string, table string, session *r.Session) bool {
 	// fmt.Println("YES")
 	return true
 }
+
 
 // UserSignup takes a new user struct, inserts it into table and returns a JWT
 // If username exists, returns empty string
@@ -207,12 +208,3 @@ func AuthMiddleware(handler http.HandlerFunc, session *r.Session) http.HandlerFu
 	})
 }
 
-// UpdateUserDetails taken in the username, and a new user object containing all new user data
-// it passes the data to UpdateDetails in user_utils, and then passes the confirmation of the
-// updation to the handler
-func UpdateUserDetails(username string, user ct.user, session *r.session) {
-
-	conf := user.UpdateDetails(username, *r.session)
-	return conf
-
-}
