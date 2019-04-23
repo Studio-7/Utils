@@ -207,4 +207,3 @@ func AuthMiddleware(handler http.HandlerFunc, session *r.Session) http.HandlerFu
 		}
 	})
 }
-

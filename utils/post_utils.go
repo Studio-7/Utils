@@ -136,7 +136,8 @@ func addImageToPost(imgloc, travelcapsule string, post ct.Post, session *r.Sessi
 
 	r.DB(db).Table(tcTable).Get(travelcapsule).
 			Update(map[string]interface{}{"posts": r.Row.Field("posts").
-			Append(id)}).
+			Append(id),
+			"updated_on": time.Now(),}).
 			RunWrite(session)
 	
 }
@@ -172,6 +173,7 @@ func CreatePost(travelcapsule, title, message, imgloc string, hashtags []string,
 	return ""
 }
 
+// CreateTC takes in a title and username and creates a new TC
 func CreateTC(title, username string, session *r.Session) string {
 	var capsule string
 	db := os.Getenv("DB")
@@ -179,6 +181,7 @@ func CreateTC(title, username string, session *r.Session) string {
 	tc := ct.TravelCapsule{
 		CreatedOn: time.Now(),
 		CreatedBy: username,
+		UpdatedOn: time.Now(),
 		Title: title,
 	}
 	insertedTerm, err := r.DB(db).Table(tcTable).Insert(tc).RunWrite(session)
