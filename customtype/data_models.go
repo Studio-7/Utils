@@ -89,6 +89,7 @@ type TravelCapsule struct {
 	Posts     []string  `rethinkdb:"posts"`
 	CreatedOn time.Time `rethinkdb:"created_on"`
 	CreatedBy string    `rethinkdb:"created_by"`
+	UpdatedOn time.Time `rethinkdb:"updated_on"`
 	Hashtags  []string  `rethinkdb:"hashtags"`
 	Likes     int       `rethinkdb:"likes"`
 }
