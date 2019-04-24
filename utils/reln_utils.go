@@ -5,6 +5,7 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 	"time"
 	"os"
+	"fmt"
 )
 
 
@@ -67,6 +68,23 @@ func CheckRelationExists(src string, dest string, rType int, session *r.Session)
 	// _ = cur.One(&u)
 	cur.Close()
 	return false
+}
+
+// GetFollowees returns an array of userids of people followed
+// by the user
+func GetFollowees(username string, session *r.Session) []string {
+	var followees []string
+	var u ct.Relation
+	db := os.Getenv("DB")
+	table := os.Getenv("RELNTABLE")
+	cur, _ := r.DB(db).Table(table).GetAllByIndex("src", username).Run(session)
+
+	for cur.Next(&u) {
+		fmt.Println(u)
+		followees = append(followees, u.Dest)
+	}
+
+	return followees
 }
 
 func getRelation(src string, dest string, rType int, session *r.Session) ct.Relation {
