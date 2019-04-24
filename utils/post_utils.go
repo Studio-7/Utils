@@ -208,10 +208,12 @@ func GetTC(postId string, session *r.Session) []string {
 }
 
 
-// GetSimplifiedPost returns a simpler version of a post
+// GetPost returns the post. If simplified is set, returns a simpler version
+// of the post
 func GetPost(postId string, simplified bool, session *r.Session) interface{} {
 	var simplePost ct.SimplePost
 	var post ct.Post
+	fullPost := make(map[string]interface{})
 	db := os.Getenv("DB")
 	postTable := os.Getenv("POSTTABLE")
 	cur, _ := r.DB(db).Table(postTable).Get(postId).Run(session)
@@ -223,9 +225,13 @@ func GetPost(postId string, simplified bool, session *r.Session) interface{} {
 		Message: post.PostBody.Message,
 		Image: "https://cloudflare-ipfs.com/ipfs/" + post.PostBody.Img.Link,
 	}
+	post.PostBody.Img.Link = "https://cloudflare-ipfs.com/ipfs/" + post.PostBody.Img.Link
 	fmt.Println(simplePost)
 	if simplified {
-		return simplePost
+		fullPost["post"] = simplePost
+	} else {
+		fullPost["post"] = post
 	}
-	return post
+	fullPost["comments"] = GetComments(postId, session)
+	return fullPost
 }
