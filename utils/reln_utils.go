@@ -5,7 +5,6 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 	"time"
 	"os"
-	"fmt"
 )
 
 
@@ -80,11 +79,31 @@ func GetFollowees(username string, session *r.Session) []string {
 	cur, _ := r.DB(db).Table(table).GetAllByIndex("src", username).Run(session)
 
 	for cur.Next(&u) {
-		fmt.Println(u)
-		followees = append(followees, u.Dest)
+		// fmt.Println(u)
+		if u.Type == ct.FollowerType {
+			followees = append(followees, u.Dest)
+		}
 	}
 
 	return followees
+}
+
+// GetFollowers returns the followers of the user as a list of usernames
+func GetFollowers(username string, session *r.Session) []string {
+	var followers []string
+	var u ct.Relation
+	db := os.Getenv("DB")
+	table := os.Getenv("RELNTABLE")
+	cur, _ := r.DB(db).Table(table).GetAllByIndex("dest", username).Run(session)
+	
+	for cur.Next(&u) {
+		// fmt.Println(u)
+		if u.Type == ct.FollowerType {
+			followers = append(followers, u.Dest)
+		}
+	}
+
+	return followers
 }
 
 func getRelation(src string, dest string, rType int, session *r.Session) ct.Relation {
@@ -124,6 +143,23 @@ func FollowUser(follower string, followee string, session *r.Session) bool {
 	return false
 }
 
+
+// Unfollowuser takes in a user and a followee of the user and unfollows the followee.
+// Returns true if successful else false
+func UnfollowUser(follower string, followee string, session *r.Session) bool {
+	userTable := os.Getenv("USERTABLE")
+	relationTable := os.Getenv("RELNTABLE")
+	db := os.Getenv("DB")
+	if CheckUserExists(follower, userTable, session) && CheckUserExists(followee, userTable, session) && follower != followee {
+		if CheckRelationExists(follower, followee, ct.FollowerType, session) {
+			r.DB(db).Table(relationTable).GetAllByIndex("src", follower).
+			Filter(r.Row.Field("dest").Eq(followee)).
+			Filter(r.Row.Field("type").Eq(ct.FollowerType)).Delete().Run(session)
+			return true
+		}
+	}
+	return false
+}
 
 // LikePost takes in a post id and username and creates
 // a like relation between them andreturns true if successful
