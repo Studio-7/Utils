@@ -62,12 +62,18 @@ func GenerateJWT(username string, session *r.Session) string {
 		// fmt.Println(auth)
 		r.DB(db).Table(tokenTable).Insert(auth).Run(session)
 		jwt = h
+	} else {
+		// Return the token if it exists in the table
+		var auth AuthToken
+		cur, _ := r.DB(db).Table(tokenTable).GetAllByIndex("username", username).Run(session)
+		cur.One(&auth)
+		jwt = auth.Token
 	}
 
 	return jwt
 }
 
-// ValidateJWT takes in a jew string and returns the username if it is valid
+// ValidateJWT takes in a jwt string and returns the username if it is valid
 // else it returns an empty string
 func ValidateJWT(jwt string, session *r.Session) string {
 	var auth interface{}
