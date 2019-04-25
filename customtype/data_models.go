@@ -2,6 +2,7 @@ package customtype
 
 import (
 	"time"
+	"gopkg.in/rethinkdb/rethinkdb-go.v5/types"
 )
 
 // Different relation types
@@ -59,6 +60,8 @@ type Post struct {
 	PostBody  Body      `rethinkdb:"body"`
 	Hashtags  []string  `rethinkdb:"hashtags"`
 	Likes     int       `rethinkdb:"likes"`
+	Location  types.Point `rethinkdb:"location"`
+	Place	  string	`rethinkdb:"place"`
 }
 
 // SimplePost represents the barebones data required to render it
@@ -69,6 +72,7 @@ type SimplePost struct {
 	Message   string 	
 	Image	  string
 	CreatedOn time.Time `rethinkdb:"created_on"`
+	Place	  string	`rethinkdb:"place"`
 }
 
 // Comment struct represents the relationship between the user, comment
