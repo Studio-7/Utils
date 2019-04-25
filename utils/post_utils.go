@@ -260,9 +260,9 @@ func GetPost(postId string, simplified bool, session *r.Session) interface{} {
 		Title: post.Title,
 		CreatedOn: post.CreatedOn,
 		Message: post.PostBody.Message,
-		Image: "https://cloudflare-ipfs.com/ipfs/" + post.PostBody.Img.Link,
+		Image: "https://ipfs.io/ipfs/" + post.PostBody.Img.Link,
 	}
-	post.PostBody.Img.Link = "https://cloudflare-ipfs.com/ipfs/" + post.PostBody.Img.Link
+	post.PostBody.Img.Link = "https://ipfs.io/ipfs/" + post.PostBody.Img.Link
 	fmt.Println(simplePost)
 	if simplified {
 		fullPost["post"] = simplePost
