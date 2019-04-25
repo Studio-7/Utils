@@ -12,10 +12,14 @@ import (
 	"os"
 	"path/filepath"
 	"time"
-
+	"strings"
 	ct "github.com/cvhariharan/Utils/customtype"
 	"github.com/xiam/exif"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
+	"strconv"
+	"gopkg.in/rethinkdb/rethinkdb-go.v5/types"
+	"github.com/codingsince1985/geo-golang"
+	"github.com/codingsince1985/geo-golang/google"
 )
 
 type ipfsResp struct {
@@ -142,12 +146,40 @@ func addImageToPost(imgloc, travelcapsule string, post ct.Post, session *r.Sessi
 	
 }
 
+// parseLocation takes in a location as lat,long and returns
+// rethinkdb point and name of the place 
+func parseLocation(location string) (types.Point, string) {
+	var lat, long float64
+	var place *geo.Address
+	var city string
+	var point types.Point
+	geocoder := google.Geocoder(os.Getenv("GOOGLE_API_KEY"))
+	if location != "" {
+		lat, _ = strconv.ParseFloat(strings.TrimSpace(strings.Split(location, ",")[0]), 64)
+		long, _ = strconv.ParseFloat(strings.TrimSpace(strings.Split(location, ",")[1]), 64)
+		fmt.Println(lat)
+		fmt.Println(long)
+		point = types.Point{Lat: lat, Lon: long}
+		place, _ = geocoder.ReverseGeocode(lat, long)
+		fmt.Println(place)
+		if place != nil {
+			fmt.Println(place)
+			city = place.City
+		}
+		// fmt.Println(place)
+	}
+	return point, city
+}
+
 // CreatePost takes in a travelcapsule id and adds the post to it. 
 // On success it returns the tc id else it returns empty string
 // Created to prevent direct handling of data-model structs in the handlers
-func CreatePost(travelcapsule, title, message, imgloc string, hashtags []string, username string, session *r.Session) string {
+func CreatePost(travelcapsule, title, message, imgloc string, hashtags []string, username, location string, session *r.Session) string {
 	capsule := travelcapsule
-
+	// Location parsing
+	point, place := parseLocation(location)
+	fmt.Println(place)
+	
 	if travelcapsule != "" {
 		var body ct.Body
 		body = ct.Body{
@@ -161,6 +193,8 @@ func CreatePost(travelcapsule, title, message, imgloc string, hashtags []string,
 			PostBody:  body,
 			Hashtags:  hashtags,
 			Likes: 0,
+			Location: point,
+			Place: place, 
 		}
 		creator := CheckTravelCapsuleExists(travelcapsule, session)
 		fmt.Println("Creator: " + creator + " User: " + username)
