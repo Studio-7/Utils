@@ -19,7 +19,7 @@ import (
 	"strconv"
 	"gopkg.in/rethinkdb/rethinkdb-go.v5/types"
 	"github.com/codingsince1985/geo-golang"
-	"github.com/codingsince1985/geo-golang/google"
+	"github.com/codingsince1985/geo-golang/here"
 )
 
 type ipfsResp struct {
@@ -153,7 +153,8 @@ func parseLocation(location string) (types.Point, string) {
 	var place *geo.Address
 	var city string
 	var point types.Point
-	geocoder := google.Geocoder(os.Getenv("GOOGLE_API_KEY"))
+	radius := 50
+	geocoder := here.Geocoder(os.Getenv("HERE_APP_ID"), os.Getenv("HERE_APP_CODE"), radius)
 	if location != "" {
 		lat, _ = strconv.ParseFloat(strings.TrimSpace(strings.Split(location, ",")[0]), 64)
 		long, _ = strconv.ParseFloat(strings.TrimSpace(strings.Split(location, ",")[1]), 64)
@@ -212,11 +213,13 @@ func CreateTC(title, username string, session *r.Session) string {
 	var capsule string
 	db := os.Getenv("DB")
 	tcTable := os.Getenv("TCTABLE")
+	u := GetUser(username, session)
 	tc := ct.TravelCapsule{
 		CreatedOn: time.Now(),
 		CreatedBy: username,
 		UpdatedOn: time.Now(),
 		Title: title,
+		ProfilePic: u.ProfilePic.Link,
 	}
 	insertedTerm, err := r.DB(db).Table(tcTable).Insert(tc).RunWrite(session)
 	if err != nil {

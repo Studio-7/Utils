@@ -96,6 +96,7 @@ type TravelCapsule struct {
 	UpdatedOn time.Time `rethinkdb:"updated_on"`
 	Hashtags  []string  `rethinkdb:"hashtags"`
 	Likes     int       `rethinkdb:"likes"`
+	ProfilePic string	`rethinkdb:"profile_pic"`
 }
 
 // Hashtag struct represents the relation between hastags and posts
