@@ -5,6 +5,7 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 	"time"
 	"os"
+	"sort"
 )
 
 
@@ -67,6 +68,37 @@ func CheckRelationExists(src string, dest string, rType int, session *r.Session)
 	// _ = cur.One(&u)
 	cur.Close()
 	return false
+}
+
+// GetImages returns an array of links of images uploaded by a user
+func GetImages(username string, session *r.Session) []string{
+	var img ct.Image
+	var images []string
+	db := os.Getenv("DB")
+	table := os.Getenv("IMGTABLE")
+	cur, _ := r.DB(db).Table(table).GetAllByIndex("created_by", username).Run(session)
+
+	for cur.Next(&img) {
+		images = append(images, img.Link)
+	}
+	return images
+}
+
+// GetAllTCs returns all the travelcapsules created by a user
+// arranged as latest TC first
+func GetAllTCs(username string, session *r.Session) []ct.TravelCapsule {
+	var tc ct.TravelCapsule
+	var tcs []ct.TravelCapsule
+	db := os.Getenv("DB")
+	table := os.Getenv("TCTABLE")
+
+	cur, _ := r.DB(db).Table(table).GetAllByIndex("created_by", username).Run(session)
+
+	for cur.Next(&tc) {
+		tcs = append(tcs, tc)
+	}
+	sort.Sort(ct.TravelCapsules(tcs))
+	return tcs
 }
 
 // GetFollowees returns an array of userids of people followed

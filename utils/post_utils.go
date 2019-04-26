@@ -64,14 +64,15 @@ func uploadToIPFS(imgloc string) string {
 	return ipfsresp.Hash
 }
 
-func getImage(imgloc string, session *r.Session) ct.Image {
+func getImage(imgloc, username string, session *r.Session) ct.Image {
 	var img ct.Image
 	db := os.Getenv("DB")
 	imgTable := os.Getenv("IMGTABLE")
 	cid := uploadToIPFS(imgloc)
 	fmt.Println(cid)
 	img = ct.Image{
-		Link: cid,
+		Link: "https://ipfs.io/ipfs/" + cid,
+		CreatedBy: username,
 	}
 	img.UploadedOn = time.Now()
 	if cid != "" {
@@ -119,13 +120,13 @@ func CheckTravelCapsuleExists(travelcapsule string, session *r.Session) string {
 
 // addImageToPost runs concurrently and inserts the image, if any to
 // the corresponding post after uploading it to IPFS.
-func addImageToPost(imgloc, travelcapsule string, post ct.Post, session *r.Session) {
+func addImageToPost(imgloc, travelcapsule, username string, post ct.Post, session *r.Session) {
 	fmt.Println("addImage")
 	db := os.Getenv("DB")
 	postTable := os.Getenv("POSTTABLE")
 	tcTable := os.Getenv("TCTABLE")
 	if imgloc != "" {
-		img := getImage(imgloc, session)
+		img := getImage(imgloc, username, session)
 		post.PostBody.Img = img
 	}
 
@@ -200,7 +201,7 @@ func CreatePost(travelcapsule, title, message, imgloc string, hashtags []string,
 		creator := CheckTravelCapsuleExists(travelcapsule, session)
 		fmt.Println("Creator: " + creator + " User: " + username)
 		if creator == username {
-			go addImageToPost(imgloc, travelcapsule, post, session)
+			go addImageToPost(imgloc, travelcapsule, username, post, session)
 			fmt.Println("Added image")
 			return capsule
 		}
@@ -260,9 +261,9 @@ func GetPost(postId string, simplified bool, session *r.Session) interface{} {
 		Title: post.Title,
 		CreatedOn: post.CreatedOn,
 		Message: post.PostBody.Message,
-		Image: "https://ipfs.io/ipfs/" + post.PostBody.Img.Link,
+		Image: post.PostBody.Img.Link,
 	}
-	post.PostBody.Img.Link = "https://ipfs.io/ipfs/" + post.PostBody.Img.Link
+	// post.PostBody.Img.Link = "https://ipfs.io/ipfs/" + post.PostBody.Img.Link
 	fmt.Println(simplePost)
 	if simplified {
 		fullPost["post"] = simplePost

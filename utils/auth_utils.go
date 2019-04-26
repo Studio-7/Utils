@@ -121,6 +121,35 @@ func GetUser(username string, session *r.Session) ct.User {
 	return u
 }
 
+// GetProfile gets the profile details for the given username
+func GetProfile(username string, session *r.Session) ct.Profile {
+	var profile ct.Profile
+	db := os.Getenv("DB")
+	userTable := os.Getenv("USERTABLE")
+
+	if CheckUserExists(username, userTable, session) {
+		followers := GetFollowers(username, session)
+		following := GetFollowees(username, session)
+		followersCount := len(followers)
+		followingCount := len(following)
+		images := GetImages(username, session)
+		tcs := GetAllTCs(username, session)
+
+		cur, _ := r.DB(db).Table(userTable).GetAllByIndex("username", username).Run(session)
+		cur.One(&profile)
+		fmt.Println(profile)
+		profile.Followers = followers
+		profile.Following = following
+		profile.FollowersCount = followersCount
+		profile.FollowingCount = followingCount
+		profile.TravelCapsules = tcs
+		profile.Images = images
+	}
+
+	return profile
+
+}
+
 // CheckUserExists takes in a username, table and db session and check if the user
 // exists in the given table
 func CheckUserExists(username string, table string, session *r.Session) bool {
