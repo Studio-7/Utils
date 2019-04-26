@@ -32,6 +32,20 @@ type User struct {
 	ProfilePic Image  `rethinkdb:"profile_pic"`
 }
 
+type Profile struct {
+	FName      string `rethinkdb:"fname"`
+	LName      string `rethinkdb:"lname"`
+	UName      string `rethinkdb:"username"`
+	Email      string `rethinkdb:"email"`
+	ProfilePic Image  `rethinkdb:"profile_pic"`
+	Followers  []string
+	Following  []string
+	FollowersCount int
+	FollowingCount int
+	TravelCapsules []TravelCapsule
+	Images	   []string
+}
+
 // Relation represents the one-many relation between user and post/travelcapsule
 // Many-one has to be imposed
 // Type can be LikeType or FollowerType
@@ -109,6 +123,7 @@ type Hashtag struct {
 type Image struct {
 	Link         string    `rethinkdb:"url"`
 	CreatedOn    string    `rethinkdb:"created_on"`
+	CreatedBy	 string	   `rethinkdb:"created_by"`
 	UploadedOn   time.Time `rethinkdb:"uploaded_on"`
 	Manufacturer string    `rethinkdb:"manufacturer"`
 	Model        string    `rethinkdb:"model"`
