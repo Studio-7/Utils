@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
-
+	"time"
 	ct "github.com/cvhariharan/Utils/customtype"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
@@ -213,6 +213,30 @@ func UserLogin(username string, password string, session *r.Session) string {
 		}
 	}
 	return jwt
+}
+
+func addProfileImage(username, imgloc string, session *r.Session) {
+	db := os.Getenv("DB")
+	userTable := os.Getenv("USERTABLE")
+	cid := uploadToIPFS(imgloc)
+	imgLink := "https://ipfs.io/ipfs/" + cid
+	img := ct.Image{
+		Link: imgLink,
+		CreatedBy: username,
+		UploadedOn: time.Now(),
+	}
+
+	r.DB(db).Table(userTable).GetAllByIndex("username", username).Update(map[string]interface{}{
+		"profile_pic": img,
+	}).Run(session)
+}
+
+func UpdateProfilePic(username, imgloc string, session *r.Session) bool {
+	if imgloc != "" {
+		go addProfileImage(username, imgloc, session)
+		return true
+	}
+	return false
 }
 
 // AuthMiddleware takes in a JWT and http.handler and
