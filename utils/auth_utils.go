@@ -12,6 +12,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"golang.org/x/crypto/bcrypt"
 	ct "github.com/cvhariharan/Utils/customtype"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v5"
 )
@@ -46,6 +47,19 @@ func resetJWT(username string, session *r.Session) {
 	r.DB(db).Table(table).GetAllByIndex("username", username).Delete().Run(session)
 }
 
+// hashString hashes a string using bcrypt
+func hashString(text string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(text), 14)
+	return string(bytes), err
+}
+
+// checkHash takes in a password that is not hashed and
+// compares it with a hash
+func checkHash(text, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(text))
+	return err == nil
+}
+
 // GenerateJWT takes a username and generates a JWT with HMAC
 func GenerateJWT(username string, session *r.Session) string {
 	var jwt string
@@ -56,19 +70,21 @@ func GenerateJWT(username string, session *r.Session) string {
 	s64 := b64.URLEncoding.EncodeToString([]byte(salt))
 	hash := computeHMAC(u64 + "." + s64)
 	h := u64 + "." + s64 + "." + b64.URLEncoding.EncodeToString([]byte(hash))
+	jwt = h
 	// Write to token table
-	if !CheckUserExists(username, tokenTable, session) {
-		auth := AuthToken{username, h}
-		// fmt.Println(auth)
-		r.DB(db).Table(tokenTable).Insert(auth).Run(session)
-		jwt = h
-	} else {
-		// Return the token if it exists in the table
-		var auth AuthToken
-		cur, _ := r.DB(db).Table(tokenTable).GetAllByIndex("username", username).Run(session)
-		cur.One(&auth)
-		jwt = auth.Token
+	// if !CheckUserExists(username, tokenTable, session) {
+	if CheckUserExists(username, tokenTable, session) {
+		// Delete the previous token
+		r.DB(db).Table(tokenTable).GetAllByIndex("username", username).Delete().Run(session)
 	}
+	hash, err := hashString(h)
+	if err != nil {
+		fmt.Println(err)
+	}
+	auth := AuthToken{username, hash}
+	// fmt.Println(auth)
+	r.DB(db).Table(tokenTable).Insert(auth).Run(session)
+
 
 	return jwt
 }
@@ -76,7 +92,7 @@ func GenerateJWT(username string, session *r.Session) string {
 // ValidateJWT takes in a jwt string and returns the username if it is valid
 // else it returns an empty string
 func ValidateJWT(jwt string, session *r.Session) string {
-	var auth interface{}
+	var auth AuthToken
 	tokenTable := os.Getenv("TOKENTABLE")
 	db := os.Getenv("DB")
 	var username string
@@ -90,13 +106,19 @@ func ValidateJWT(jwt string, session *r.Session) string {
 			if hash == string(h) {
 				if CheckUserExists(string(u), tokenTable, session) {
 					username = string(u)
-					cur, _ := r.DB(db).Table(tokenTable).GetAllByIndex("token", jwt).Run(session)
+					// hashedJwt, _ := hashString(jwt)
+					fmt.Println(jwt)
+					// fmt.Println(hashedJwt)
+					cur, _ := r.DB(db).Table(tokenTable).GetAllByIndex("username", username).Run(session)
 					cur.One(&auth)
-					if auth != nil {
-						// Token exists in table, ie valid token
-						// Delete the currently used token from tokentable
-						r.DB(db).Table(tokenTable).GetAllByIndex("username", username).Delete().Run(session)
-						return username
+					if auth.Token != "" {
+						fmt.Println(auth.Token)
+						if checkHash(jwt, auth.Token) {
+							// Token exists in table, ie valid token
+							// Delete the currently used token from tokentable
+							r.DB(db).Table(tokenTable).GetAllByIndex("username", username).Delete().Run(session)
+							return username
+						}
 					}
 					
 				}
